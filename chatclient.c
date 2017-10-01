@@ -26,7 +26,7 @@
 
 int errcheck; // glob error checking variable
 
-int connecttoServer(struct addrinfo hints, char **argv, int *soc) // Connects server and client
+int connecttoServer(struct addrinfo hints, char **argv) // Connects server and client
 {
 	struct addrinfo *p, *info;
 	char ipstr[INET_ADDRSTRLEN];
@@ -43,7 +43,7 @@ int connecttoServer(struct addrinfo hints, char **argv, int *soc) // Connects se
 	for(p = info; p != NULL; p = p->ai_next) {
 
 		tmpsoc = socket(PF_INET, p->ai_socktype, p->ai_protocol); //Taking fd from listening port
-		if (*soc == -1) {
+		if (tmpsoc == -1) {
 			perror("client : socket");
 			continue;
 		}

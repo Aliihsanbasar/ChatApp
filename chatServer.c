@@ -23,17 +23,13 @@
 
 enum authority {MEMBER, MOD, ADMIN};
 
-struct client_unique {
-	char client_ip[IP]
-};
+
 
 struct clients {
 	int num;
 	char id[25];
 	int password;
 	enum authority authority;
-	struct client_unique cl_uniq;
-
 };
 
 
