@@ -38,7 +38,7 @@ int listener; // listener socket
 int errcheck; // global errcheck integer
 
 
-int initServer(char **argv)
+void  initServer(char **argv)
 {
 	struct addrinfo hints, *tmp, *info; // addr info
 	int yes = 1;  // for socket setting
@@ -93,7 +93,6 @@ int initServer(char **argv)
 	}
 
 	puts("server: awaits");
-	return listener;
 
 }
 
@@ -190,10 +189,11 @@ int establishConn()
 		if (errno == EAGAIN ||
 			errno == EWOULDBLOCK) {
 			// all connections established
-
+			return -1;
 		}
 		else {
 			perror("server : accept");
+			abort();
 
 		}
 	}
@@ -221,9 +221,9 @@ void addingInstancetoEpoll(struct epoll_event event, int epfd, int tmpfd)
 	else {
 		event.data.fd = tmpfd;
 	}
+	printf("%d\n\n", event.data.fd);
 	event.events = EPOLLIN | EPOLLET; // edge-trigg
-
-	errcheck = epoll_ctl(epfd, EPOLL_CTL_ADD, listener, &event); // adding listener to epoll instance
+	errcheck = epoll_ctl(epfd, EPOLL_CTL_ADD, tmpfd, &event); // adding listener to epoll instance
 	if (errcheck == -1 ) {
 		perror("server : epoll_create");
 		abort();
@@ -296,18 +296,19 @@ int main(int argc, char **argv)
 			}
 			else if (listener == events[i].data.fd) {
 				// event on listener socket means new connections
+				while (1) {
 
-				while(1) {
 					newfd = establishConn(); // handle new conn
+					if (newfd == -1) {
+						break;
+					}// end if
 					client[i].num = counter;
 					counter++;
 					sprintf(msg, "%d. client connected", client[i].num);
-  					sendMessage(events, msg, i , n); // announce new conn
 					addingInstancetoEpoll(event, epfd, newfd); // add new conn to instance
-				}
-				continue;
-
-			}
+					sendMessage(events, msg, i , n); // announce new conn
+				}// end while
+			}// end elif
 			else {
 				// That means new data comes to fd
 				int done = 0;
@@ -320,6 +321,7 @@ int main(int argc, char **argv)
 				if (done) {
 
 					closedConn(events, client, msg, i, n);
+					continue;
 
 				} // end if
 			} // end else
@@ -333,7 +335,5 @@ int main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 
-
-	return 0;
 
 }

@@ -20,17 +20,23 @@
 #include <netinet/in.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <poll.h>
 
 #define MAXCHAR 140 // Maximum character to transfer
 
 
 int errcheck; // glob error checking variable
 
-int connecttoServer(struct addrinfo hints, char **argv) // Connects server and client
+int connecttoServer(char **argv) // Connects server and client
 {
-	struct addrinfo *p, *info;
+	struct addrinfo *p, *info, hints;
 	char ipstr[INET_ADDRSTRLEN];
 	int tmpsoc;
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_INET; //IPv4
+	hints.ai_socktype = SOCK_STREAM; //TCP
+	hints.ai_flags = AI_PASSIVE; // AGNOS
 
 	errcheck = getaddrinfo(argv[1], argv[2], &hints, &info); // Takes ip and port infos
 	if(errcheck != 0) {
@@ -70,9 +76,6 @@ int connecttoServer(struct addrinfo hints, char **argv) // Connects server and c
 }
 
 
-
-
-
 int main(int argc, char **argv)
 {
 
@@ -82,26 +85,42 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	struct addrinfo hints;
+	struct pollfd mypoll = {STDIN_FILENO, POLLIN | POLLPRI };
 	int soc;
 	int running = 1;
+	char *msg;
 
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_INET; //IPv4
-	hints.ai_socktype = SOCK_STREAM; //TCP
-	hints.ai_flags = AI_PASSIVE; // AGNOS
+	msg = calloc(MAXCHAR, sizeof(char));
+	if (msg == NULL) {
+		fprintf(stderr, "msg : calloc ");
+		exit(0);
+	}
 
-	soc = connecttoServer(hints, argv); // connect server
+	soc = connecttoServer(argv); // connect server
+
 
 	while(running) { // event-client loop
 
+		if (poll(&mypoll, 1, 50)) {
 
-	}
+			printf("Enter > ");
+			fgets(msg, sizeof(msg), stdin);
+			if (msg == NULL) {
+				fprintf(stderr, "failed to load msg string");
+				continue;
+			}// end string if
+			send(soc, msg, sizeof(msg), 0);
+
+
+		}// end stdin if
+
+		recv(soc, msg, sizeof(msg), 0);
+		printf("%s\n", msg);
+
+	}// end while
 
 
 	close(soc);
-
-
 
 	return 0;
 }
